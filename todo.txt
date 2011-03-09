@@ -1,0 +1,26 @@
+* fix bug with "K:":
+  0) [K:something] in a voice applies to all voices. Instead abctool
+     should remember which key we left the voice in the last time.
+  1) If no key is given in the header none is assumed
+  2) Any occurence of "K:" without any more text after that (like [K:]
+     or K:\n) is assumed to mean "K:none".
+  3) Any text in K: that is not relevant and therefore not understood
+     by the transposition is simply added (unmodified) after the
+     modified K:what-ever.
+* accept incorrect keys (like C# or Db dorian) in transposition
+* in K:none avoid removing superflurious acidentals
+* if .abctool_check not present at first run, do only --check and
+  write results to .abctool_check
+* implement a way to not transpose certain voices
+* install script
+* implement conversion to chord, music-xml and WA
+* have -g option (for "gui") which should bring up a simple dialog
+  that let's the user set stuff like transpositon before viewing. This
+  would be handy when abctool is associated with .abc-files in a file
+  manager...  
+* maybe have long options
+* have -X Y option for selecting tune(s). Y should be N, N-N, where N
+  is a number
+* be able to match on composer/title (-C and -T) to select from
+  multible tunes
+* barfly macro expansion

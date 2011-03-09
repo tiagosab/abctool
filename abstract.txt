@@ -1,0 +1,11 @@
+Normally I edit .abc files in emacs which works great. But I often
+miss a powerfull, yet simple way to handle the .abc files I have lying
+around on my harddisk. abctool is intended as a "one stop script" for
+manipulating (transposing, viewing, translation to danish chords)
+finished .abc files.
+
+It's also intended as a platform for me to re-implement some of the
+algorithms I wrote in php (esp. a correct transposing algorithm) in a
+more generally useful format.
+
+Finally it was a way for me to get to know python.

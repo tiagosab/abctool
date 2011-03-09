@@ -1,0 +1,7 @@
+* tranposition (both my own implementation and using abc2abc)
+* read from standard input or file
+* output to standard output, PostScript, PDF or MIDI
+* view (using abcm2ps and gv)
+* translation of chord names to danish/german ("B" becomes "H")
+* removal of chords and fingerings
+* supports ~/.abctoolrc

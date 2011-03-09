@@ -1,0 +1,12 @@
+Since abctool is a python script, it doesn't need to be installed. How
+ever, it depends on a number of things to be present on the system to
+perform it's various tasks:
+
+* Python
+* abcm2ps (to generate postscript files)
+* gv (to view postscript files, and to generate pdf files )
+* abc2midi (to convert to midi or listen to a file)
+* timidity (to listen to a file)
+* texexec (to use the --songbook feature), in debian it's part of the
+  tetex-extra package
+* abc2abc (to transpose using -T, not recommended)
