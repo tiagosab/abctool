@@ -33,7 +33,8 @@ external_programs['editor'] = 'emacs'
 external_functionality['editor'] = 'editing'
 
 
-class abctool:
+class AbcTool:
+    """Main class for abctool command."""
     version = '0.3.24~ts'
     date = '2010-10-24'
 
@@ -57,12 +58,13 @@ class abctool:
         print self.manual
         sys.exit()
 
-    def writeFile(self,string,file):
+    def writeFile(self, string, file):
         f = open(file,'w')
         f.write(string)
         f.close()
 
-    def reencode(self,string):
+    def reencode(self, string):
+        """Return latin-1 encoded string."""
         try:
             tmp = string.decode('utf-8')
         except:
@@ -90,10 +92,10 @@ class abctool:
             else:
                 print '2else:'
                 string = tmp
-        
         return string
             
-    def readFile(self, file):
+    def readfile(self, filename):
+        """Read file from filename and append AbcTune to self.abcs."""
         nonTuneLines = ''
         f = open(file,'r')
         filecontent = f.read()
@@ -104,7 +106,6 @@ class abctool:
         # modTime FIXME
         # must set mtime of tmpfile to this later...
         #sys.exit()
-
 
         lines = filecontent.split('\n')
         lines.append('')
@@ -120,43 +121,19 @@ class abctool:
                 if line.strip() == '':
                     inTune = False
                     if nonTune == '':
-                        abcTune = abctune(tune)
+                        abctune = AbcTune(tune)
                     else:
-                        abcTune = abctune(nonTune + '\n' + tune)
-                    abcTune.abcOptions = self.options.abcOptions
-                    self.abcs.append(abcTune)
+                        abctune = AbcTune(nonTune + '\n' + tune)
+                    abctune.abcOptions = self.options.abcOptions
+                    self.abcs.append(abctune)
                 else:
                     tune = tune + line + '\n'
             else:
                 if line.strip() != '':
                     nonTune = nonTune + line + '\n'
-                
 
-
-    def readFileOld(self, file):
-        nonTuneLines = ''
-        f = open(file,'r')
-        filecontent = f.read()
-        f.close()
-        tunes = filecontent.split("\n\n")
-        for tune in tunes:
-            print '----tune:'
-            print tune
-            print '-----tuneEOF'
-            print
-            
-            tune = self.reencode(tune)
-            if  self.isTune(tune):
-                #print tune
-                sys.exit()
-                abcTune = abctune(tune)
-                abcTune.abcOptions = self.options.abcOptions
-                self.abcs.append(abcTune)
-            else:
-                nonTuneLines = nonTuneLines + tune + '\n'
-                print nonTuneLines
-
-    def parseRcFile(self):
+    def parsercfile(self):
+        """Read options from .abctool"""
         try:
             args = []
             f = open(self.rcFile,'r')
@@ -179,96 +156,204 @@ class abctool:
             args.reverse()
             for arg in args:
                 sys.argv.insert(1,arg)
-                
-
         except:
             pass
 
-        
-
     def parseOptions(self):
+        """Parse command line options"""
         # show help if no input + if -?
         if len(sys.argv) == 1:
             sys.argv.append('-h')
         elif '-?' in sys.argv:
             sys.argv.remove('-?')
             sys.argv.append('-h')  
-
             
-        self.parseRcFile()
-
+        self.parsercfile()
         parser = optparse.OptionParser()
 
         # editing
-        editGroup = optparse.OptionGroup(parser, 'Editing','')
-        editGroup.add_option('-e', '', action='store_true', dest='edit', help='edit in external editor and view in gv', default=False)
+        editGroup = optparse.OptionGroup(parser,
+                                         'Editing', '')
+        editGroup.add_option('-e', '',
+                             action='store_true',
+                             dest='edit',
+                             help='edit in external editor and view in gv',
+                             default=False)
 
         # selection
-        selectGroup = optparse.OptionGroup(parser, 'Tune selection','')
-        selectGroup.add_option('-X', '', dest='XtuneNumber', help='process tune(s) with matching X: field, comma seperated list', default=None)
-        selectGroup.add_option('-n', '', dest='tuneNumber', help='process only selected tune(s) (comma seperated list), first tune in file is 1, if -X also present -n is disregarded', default=None)
-        selectGroup.add_option('-V', '', dest='keepVoices', help='extract only voices (comma seperated list)', default='')
-        selectGroup.add_option('', '--list_voices', action='store_true', dest='listVoices', help='list voices (V:) found in the abc', default=False)
+        selectGroup = optparse.OptionGroup(parser, 'Tune selection', '')
+        selectGroup.add_option('-X', '', dest='XtuneNumber',
+                               help='process tune(s) with matching X:'\
+                                    'field, comma seperated list',
+                               default=None)
+        selectGroup.add_option('-n', '', dest='tuneNumber',
+                               help='process only selected tune(s)'\
+                                    ' (comma seperated list), first '\
+                                    'tune in file is 1, if -X also '\
+                                    'present -n is disregarded',
+                               default=None)
+        selectGroup.add_option('-V', '', dest='keepVoices',
+                               help='extract only voices '\
+                                    '(comma seperated list)',
+                               default='')
+        selectGroup.add_option('', '--list_voices', action='store_true',
+                               dest='listVoices',
+                               help='list voices (V:) found in the abc',
+                               default=False)
 
 
         # processing
         processGroup = optparse.OptionGroup(parser, 'Processing','')
-        processGroup.add_option('-t', '', type='int', dest='transpose', help='transpose by TRANSPOSE halfsteps', default=0)
-        processGroup.add_option('-T', '', type='int', dest='externalTranspose', help='transpose by TRANSPOSE halfsteps using abc2abc', default=0)
-        processGroup.add_option('-A', '', action='store_true', dest='explicitAccidentals', help='explicit accidentals', default=False)
-        processGroup.add_option('-j', '', action='store_true', dest='jazzChords', help='translate jazz chords'.decode('utf-8'), default=False)
-        processGroup.add_option('-d', '', action='store_true', dest='danishChords', help='translate to danish chords (B becomes H)', default=False)
+        processGroup.add_option('-t', '', type='int', dest='transpose',
+                                help='transpose by TRANSPOSE halfsteps',
+                                default=0)
+        processGroup.add_option('-T', '', type='int', dest='externalTranspose',
+                                help='transpose by TRANSPOSE halfsteps '\
+                                     'using abc2abc',
+                                default=0)
+        processGroup.add_option('-A', '', action='store_true',
+                                dest='explicitAccidentals',
+                                help='explicit accidentals',
+                                default=False)
+        processGroup.add_option('-j', '', action='store_true',
+                                dest='jazzChords',
+                                help='translate jazz chords',
+                                default=False)
+        processGroup.add_option('-d', '', action='store_true',
+                                dest='danishChords',
+                                help='translate to danish chords (B becomes H)',
+                                default=False)
 
 
-        processGroup.add_option('-c', '', action="store_true", dest='removeChords', help='remove chords', default=False)
-        processGroup.add_option('-f', '', action="store_true", dest='removeFingerings', help='remove fingerings', default=False)
-        processGroup.add_option('-D', '', action="store_true", dest='removeDecorations', help='remove all decorations', default=False)
+        processGroup.add_option('-c', '', action="store_true",
+                                dest='removeChords',
+                                help='remove chords',
+                                default=False)
+        processGroup.add_option('-f', '', action="store_true",
+                                dest='removeFingerings',
+                                help='remove fingerings',
+                                default=False)
+        processGroup.add_option('-D', '', action="store_true",
+                                dest='removeDecorations',
+                                help='remove all decorations',
+                                default=False)
 
-        processGroup.add_option('-w', '', action="store_true", dest='removeLyrics', help='remove lyrics (w:)', default=False)
-        processGroup.add_option('-W', '', action="store_true", dest='removeExtraLyrics', help='remove lyrics (W:)', default=False)
-        processGroup.add_option('-l', '', action="store_true", dest='removeAllLyrics', help='remove all lyrics (w: and W:)', default=False)
-        processGroup.add_option('-L', '', action="store_true", dest='extractLyrics', help='extract lyrics (w: and W:)', default=False)
+        processGroup.add_option('-w', '', action="store_true",
+                                dest='removeLyrics',
+                                help='remove lyrics (w:)',
+                                default=False)
+        processGroup.add_option('-W', '', action="store_true",
+                                dest='removeExtraLyrics',
+                                help='remove lyrics (W:)',
+                                default=False)
+        processGroup.add_option('-l', '', action="store_true",
+                                dest='removeAllLyrics',
+                                help='remove all lyrics (w: and W:)',
+                                default=False)
+        processGroup.add_option('-L', '', action="store_true",
+                                dest='extractLyrics',
+                                help='extract lyrics (w: and W:)',
+                                default=False)
 
+        processGroup.add_option('-C', '', action="store_true",
+                                dest='whiteChordRoots',
+                                help='make chord roots white keys '\
+                                     '(Fb becomes E)',
+                                default=False)
+        processGroup.add_option('','--title', type="string",
+                                dest='addTitle',
+                                help='Add title (T:) below original title',
+                                default='')
 
-        processGroup.add_option('-C', '', action="store_true", dest='whiteChordRoots', help='make chord roots white keys (Fb becomes E)', default=False)
-        processGroup.add_option('','--title', type="string", dest='addTitle', help='Add title (T:) below original title', default='')
-
-
-
-        processGroup.add_option('-r', '', dest='replaceStrings', help='replace strings, comma seperated list', default='')
-
+        processGroup.add_option('-r', '', dest='replaceStrings',
+                                help='replace strings, comma seperated list',
+                                default='')
 
         # input/output
         outputGroup = optparse.OptionGroup(parser, 'Input/output','')
 
+        # outputGroup.add_option('','--defaultabc', type="string",
+        #                        dest='defaultabc',
+        #                        help='default abc in new files',
+        #                        default='')
+        outputGroup.add_option('-i', '', action="store_true",
+                               dest='stdin',
+                               help='read from stdin',
+                               default=False)
+        outputGroup.add_option('-s', '', action="store_true",
+                               dest='stdout',
+                               help='send to stdout',
+                               default=False)
+        outputGroup.add_option('', '--pdf', action="store_true",
+                               dest='pdf',
+                               help='convert to pdf',
+                               default=False)
+        outputGroup.add_option('', '--ps', action="store_true",
+                               dest='ps',
+                               help='convert to PostScript',
+                               default=False)
+        outputGroup.add_option('', '--songbook', action="store_true",
+                               dest='generateSongbook',
+                               help='generate songbook.pdf containing all '\
+                                    '.abc files in current directory in '\
+                                    'concert key and transposed for Bb '\
+                                    'and Eb instruments. If -R is present'\
+                                    'do it recursively',
+                               default=False)
+        outputGroup.add_option('-R', '', action="store_true",
+                               dest='recursive',
+                               help='look for files recursively',
+                               default=False)
+        outputGroup.add_option('', '--midi', action='store_true',
+                               dest='generateMidi',
+                               help='generate midi',
+                               default=False)
+        outputGroup.add_option('-p', '', action='store_true',
+                               dest='playMidi',
+                               help='play',
+                               default=False)
+        outputGroup.add_option('-P', '', action='store_true',
+                               dest='printFile',
+                               help='print',
+                               default=False)
 
-
-#        outputGroup.add_option('','--defaultabc', type="string", dest='defaultabc', help='default abc in new files', default='')
-        outputGroup.add_option('-i', '', action="store_true", dest='stdin', help='read from stdin', default=False)
-        outputGroup.add_option('-s', '', action="store_true", dest='stdout', help='send to stdout', default=False)
-        outputGroup.add_option('', '--pdf', action="store_true", dest='pdf', help='convert to pdf', default=False)
-        outputGroup.add_option('', '--ps', action="store_true", dest='ps', help='convert to PostScript', default=False)
-        outputGroup.add_option('', '--songbook', action="store_true", dest='generateSongbook', help='generate songbook.pdf containing all .abc files in current directory in concert key and transposed for Bb and Eb instruments. If -R is present do it recursively', default=False)
-        outputGroup.add_option('-R', '', action="store_true", dest='recursive', help='look for files recursively', default=False)
-        outputGroup.add_option('', '--midi', action='store_true', dest='generateMidi', help='generate midi', default=False)
-        outputGroup.add_option('-p', '', action='store_true', dest='playMidi', help='play', default=False)
-        outputGroup.add_option('-P', '', action='store_true', dest='printFile', help='print', default=False)
-
-        outputGroup.add_option('-a', '', action='store_true', dest='absPath', help='place output files in absolute paths (and not in current directory)', default=False)
-        #outputGroup.add_option('', '--enc', dest='encoding', help='output encoding', default='latin-1')
+        outputGroup.add_option('-a', '', action='store_true',
+                               dest='absPath',
+                               help='place output files in absolute paths '\
+                                     '(and not in current directory)',
+                               default=False)
+        # outputGroup.add_option('', '--enc', dest='encoding',
+        #                        help='output encoding',
+        #                        default='latin-1')
 
         # options
         optionGroup = optparse.OptionGroup(parser, 'Options','')
-        optionGroup.add_option('--abc_options', '-o', dest='abcOptions', help='call abc(m)2ps with these options', default='')
-        optionGroup.add_option('--gv_options', '', dest='gvOptions', help='call gv with these options', default='')
+        optionGroup.add_option('--abc_options', '-o', dest='abcOptions',
+                               help='call abc(m)2ps with these options',
+                               default='')
+        optionGroup.add_option('--gv_options', '', dest='gvOptions',
+                               help='call gv with these options',
+                               default='')
         
         # diagnostics
         diaGroup = optparse.OptionGroup(parser, 'Dianostics','')
-        diaGroup.add_option('', '--check', action="store_true", dest='checkExternalPrograms', help='check if certain external programs needed for some tasks are present', default=False)
-        diaGroup.add_option('', '--manual', action="store_true", dest='manual', help='view manual', default=False)
-        diaGroup.add_option('', '--changelog', action="store_true", dest='changelog', help='view changelog', default=False)
-        diaGroup.add_option('-v', '--version', action="store_true", dest='printVersion', help='view version', default=False)
-        
+        diaGroup.add_option('', '--check', action="store_true",
+                            dest='checkExternalPrograms',
+                            help='check if certain external programs '\
+                                 'needed for some tasks are present',
+                            default=False)
+        diaGroup.add_option('', '--manual', action="store_true",
+                            dest='manual',
+                            help='view manual',
+                            default=False)
+        diaGroup.add_option('', '--changelog', action="store_true",
+                            dest='changelog',
+                            help='view changelog',
+                            default=False)
+        diaGroup.add_option('-v', '--version', action="store_true",
+                            dest='printVersion',
+                            help='view version',
+                            default=False)
 
         parser.add_option_group(editGroup)
         parser.add_option_group(selectGroup)
@@ -312,20 +397,15 @@ class abctool:
                 f = open(abcTmpFile,'w')
                 f.write(line)
                 f.close()
-                self.readFile(abcTmpFile)
+                self.readfile(abcTmpFile)
                 os.remove(abcTmpFile)
 
             for file in args:
                 if os.path.exists(file):
-                    self.readFile(file)
+                    self.readfile(file)
                 else:
                     continue
                     print 'file "' + file +'" doesnt exist'
-                    
-
-
-
-
 
     def process(self):
         if self.options.edit:
@@ -393,11 +473,9 @@ class abctool:
         else:
             self.view()
 
-
-    def printVersion(self):
+    def printversion(self):
+        """Print program version."""
         print self.version + ', ' + self.date
-
-
 
     def touch(self, file):
         if not os.path.exists(file):
@@ -405,7 +483,8 @@ class abctool:
             f.write('')
             f.close() 
         
-    def searchPath(self,cmdname, path = None):
+    def searchPath(self, cmdname, path = None):
+        """Search command cmdname in path."""
         if path is None:
             path = os.environ["PATH"]
 
@@ -421,8 +500,8 @@ class abctool:
                     return fcmd
         return None
 
-
     def externalProgramsCandidates(self):
+        """Define which external programs to use."""
         for program in external_programs:
             if type(external_programs[program]) == list:
                 check_list = external_programs[program]
@@ -433,7 +512,8 @@ class abctool:
                         external_programs[program] = candidate
                         break
 
-    def getCandidate(self,program):
+    def getCandidate(self, program):
+        """Return full path to program."""
         result = None
         if type(external_programs[program]) == list:
             for candidate in check_list:
@@ -450,8 +530,6 @@ class abctool:
         else:
             print "couldn't find executable for " + program + ', exiting...'
             sys.exit()
-        
-        
 
     def checkExternalPrograms(self):
         ok = 'ok    '
@@ -475,10 +553,9 @@ class abctool:
                     print error + 'couldn\'t find ' + program + ', ' + external_functionality[program] + ' won\'t work...'
                 else:
                     print error + 'couldn\'t find ' + program + ', some part(s) of ' + programname + ' won\'t work...'
-                
-
 
     def generateSongbook(self):
+        """Generate songbooks; all songs in C, Bb and Eb (3 pdfs)."""
         options = self.options.abcOptions
         files = []
         if '-R' in sys.argv:
@@ -492,12 +569,11 @@ class abctool:
         files.sort()
         for file in files:
             if os.path.exists(file):
-                    self.readFile(file)
+                    self.readfile(file)
             else:
                 continue
                 print 'file "' + file +'" doesnt exist'
         #print self.getAbc()
-
 
         transpose = 0
         runs = [[0,'songbook.pdf'],[9,'songbook_eb.pdf'],[14,'songbook_bb.pdf']]
@@ -515,10 +591,8 @@ class abctool:
         os.remove(abcTmpFile)
         os.remove(psTmpFile)
 
-
-
-
     def generateMidi(self):
+        """Generate midi files."""
         i = 0
         for abc in self.abcs:
             basename = self.args[i]
@@ -530,11 +604,10 @@ class abctool:
         sys.exit()
 
     def playMidi(self):
+        """Play all songs."""
         for abc in self.abcs:
             abc.playMidi()
         sys.exit()
-
-
 
     def getOutBasename(self):
         basename = self.args[0]
@@ -547,16 +620,13 @@ class abctool:
         command = self.getCandidate('gs')
         os.system(command + ' -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sPAPERSIZE=a4 -sOUTPUTFILE=' + pdf + ' ' + ps)
 
-
     def abc2ps(self,options):
         command = self.getCandidate('abc2ps')
         os.system(command + ' ' + options)
 
-
     def gv(self, options):
         command = self.getCandidate('gv')
         os.system(command + ' ' + options)
-
 
     def printFile(self):
         command = self.getCandidate('lpr')
@@ -573,7 +643,6 @@ class abctool:
         os.utime(abcTmpFile,(self.modTime,self.modTime))
         self.abc2ps(abcTmpFile + ' -O ' + psFileName + '  ' + options)
         os.remove(abcTmpFile)
-
                 
     def generatePdf(self):
         options = self.options.abcOptions
@@ -586,7 +655,6 @@ class abctool:
         self.ps2pdf(psTmpFile,pdfFileName)
         os.remove(abcTmpFile)
         os.remove(psTmpFile)
-
         
     def edit(self):
         editfile = self.getCandidate('editor') + ' %f'
@@ -629,12 +697,9 @@ class abctool:
         abcTmpFile = tempfile.mktemp()
         psTmpFile = tempfile.mktemp()
         self.writeFile(self.getAbc(),abcTmpFile)
-
         
         self.abc2ps(abcTmpFile + ' -O ' + psTmpFile + '  ' + options)
         self.gv(gv_view_options + ' ' + psTmpFile)
-
-
 
     def isTune(self,string):
         if len(string) < 2 or string[:2] != 'X:':
@@ -674,7 +739,6 @@ class abctool:
             abc.append(tune.getAbc())
         return "\n\n".join(abc)
 
-
     def printAbc(self):
         print self.getAbc()
 
@@ -686,7 +750,6 @@ class abctool:
         for abc in self.abcs:
             abc.keepVoices(self.options.keepVoices)
 
-
     def explicitAccidentals(self):
         for abc in self.abcs:
             abc.explicitAccidentals()
@@ -694,7 +757,6 @@ class abctool:
     def removeChords(self):
         for abc in self.abcs:
             abc.removeChords()
-
 
     # lyrics
     def removeExtraLyrics(self):
@@ -752,11 +814,7 @@ class abctool:
         for abc in self.abcs:
             abc.transpose(self.options.transpose)
 
-
-
-
-
-class abctune:
+class AbcTune(object):
     abc = ''
 
     voices = []
@@ -810,27 +868,13 @@ class abctune:
         self.abc = string
         self.setVoices()
 
-
-
-    def writeAbcToFile(self,file):
-        self.writeFile(self.abc,file)
+    def writeAbcToFile(self, file):
+        self.writeFile(self.abc, file)
         
-    def writeFile(self,string,file):
-        f = open(file,'w')
+    def writeFile(self, string, file):
+        f = open(file, 'w')
         f.write(string)
         f.close()
-
-    """
-    def readFile(self, file):
-        f = open(file,'r')
-        filecontent = f.read()
-        f.close()
-        tunes = filecontent.split("\n\n")
-        for tune in tunes:
-            if  self.isTune(tune):
-                self.abcs.append(abctune(tune))
-    """
-
 
     def getX(self):
         X = -1
@@ -851,7 +895,6 @@ class abctune:
     def getLines(self):
         return self.abc2lines(self.abc)
 
-
     def parseMusicLine(self,line):
         parsedLine = []
         note = re.compile('[\^_]*[a-gA-G]')
@@ -870,8 +913,6 @@ class abctune:
         print line
         print parsedLine
         sys.exit()
-
-
 
     def generateMidi(self,midiFile):
         abcTmpFile = tempfile.mktemp()
@@ -909,14 +950,12 @@ class abctune:
         else:
             return 'music'
 
-
     def removeExtraLyrics(self):
         lines = self.getLines()
         self.abc = ''
         for line in lines:
             if line[:2] != 'W:':
                 self.abc += '\n' + line
-
 
     def addTitle(self,title):
         lines = self.getLines()
@@ -945,7 +984,6 @@ class abctune:
                 i = i + 1
             replaceStrings = replaceStrings[2:]
         self.abc = '\n'.join(lines)
-
 
     def explicitAccidentals(self):
         lines = self.getLines()
@@ -1067,7 +1105,6 @@ class abctune:
         self.abc = '\n'.join(newLines)
 #        sys.exit()
         
-        
     def setVoices(self):
         voiceRE = re.compile('\[V\:([^\]]*)\]')
         voices = []
@@ -1088,7 +1125,6 @@ class abctune:
                         voices.append(voiceName)
                 
         self.voices = voices
-
         
     def listVoices(self):
         for voice in self.voices:
@@ -1106,8 +1142,6 @@ class abctune:
                 lines[lineNb] = p.sub('',line)
             lineNb = lineNb + 1
         self.abc = self.lines2abc(lines)
-
-        
 
     def danishChords(self):
         lines  = self.getLines()
@@ -1127,7 +1161,6 @@ class abctune:
             abc += line
 
         self.abc = abc
-
 
     def danishChordsLine(self, abc):
         i = 0
@@ -1194,7 +1227,6 @@ class abctune:
             lineNb = lineNb + 1
         self.abc = self.lines2abc(lines)
 
-
     def externalTranspose(self,halfsteps):
         tmpfile1 = tempfile.mktemp();
         tmpfile2 = tempfile.mktemp();
@@ -1206,8 +1238,6 @@ class abctune:
         os.remove(tmpfile1)
         os.remove(tmpfile2)
         self.abc = filecontent
-
-
 
     def transpose(self,transpose):
         transpose = int(transpose)
@@ -1439,7 +1469,6 @@ class abctune:
         
         self.abc = result.strip('\n')
 
-
     def setup_key(self,key,transpose):
         root = re.compile('^[A-G][b#]?')
         none = re.compile('none')
@@ -1510,7 +1539,6 @@ class abctune:
 
         return result
 
-
     def non_enharmonic_key(self,key):
         if key == 'F#':
             result = 'Gb'
@@ -1522,9 +1550,6 @@ class abctune:
             result = key
 
         return result
-    
-
-
 
     def find_scale(self,key):
         none = False
@@ -1534,7 +1559,6 @@ class abctune:
         scale_type = key[root_res.span()[1]:]
         actual_scale = self.map_key_to_accidentals(key)
         actual_scale = actual_scale.split(' ')[0]
-        
 
         if scale_type == 'major':
             key = scale_root
@@ -1607,8 +1631,6 @@ class abctune:
             i = 0
         return result
 
-
-
     def map_key_to_accidentals(self,key):
         root = re.compile('^[A-G][b#]?')
         root_res = root.match(key)
@@ -1636,9 +1658,6 @@ class abctune:
 
         return key
 
-
-
-
     def apply_accidentals(self,white_key,accidentals):
         result = white_key
         for i in accidentals:
@@ -1646,8 +1665,6 @@ class abctune:
                 result = i
                 break
         return result
-
-
 
     def find_chord_scale(self,key):
         none = False
@@ -1692,7 +1709,6 @@ class abctune:
             degree = degree + 1
         return result
 
-
     def find_key(self,source_key,transpose):
         none = False
         root = re.compile('^[A-G][b#]?')
@@ -1707,7 +1723,6 @@ class abctune:
         if none:
             new_key = new_key + 'none'
         return new_key
-
 
     def transpose_root(self,scale_root,scale_type,transpose):
         scale_type = string.lower(scale_type).strip()
@@ -1724,8 +1739,6 @@ class abctune:
             index = self.scales[scale_type].index(scale_root)
             new_root = self.scales[scale_type][(index + transpose) % 12]
         return new_root
-
-
 
     def get_midi_key(self,note):
         # doesn't work with any abc note, since C could mean C# in A major, etc
@@ -1746,12 +1759,10 @@ class abctune:
 
         return midi_key
 
-
     def transpose_in_scales(self,note,source_scale,target_scale):
         index = source_scale.index(note)
         result = target_scale[index]
         return result
-
 
     def normalize_octave(self,note):
         root_res = self.root_splitter.search(note)
@@ -1778,7 +1789,6 @@ class abctune:
             octave = ',' * (- octave_count)
 
         return accidentals + root + octave
-
 
     def whiteChordRoot(self,root):
         result = root
@@ -1835,14 +1845,10 @@ class abctune:
             result = 'D'
         return result
 
-
-
-
-
     def whiteChordRootsTune(self):
         result = []
         in_chord = False
-        not_music = ['V','K','P','%','w','W']
+        not_music = ['V', 'K', 'P', '%', 'w', 'W']
         chord = re.compile('^[A-G][b#]*')
         annotation = re.compile('^"[><_^@].*?"')
 
@@ -1902,14 +1908,9 @@ class abctune:
                         result.append(next)
                         line = line[1:]
         result = ''.join(result)
-
         self.abc = result
 
-
-
-
-
-abc = abctool()
+abc = AbcTool()
 abc.parseOptions()
 abc.process()
 
